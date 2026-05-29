@@ -360,12 +360,12 @@ footer strong { color: var(--petrol); }
 
 <!-- GENERADOR -->
 <div id="gen" class="section">
-  <p class="gen-intro">Cuéntame de qué va tu próximo reel y te genero 5 ganchos que paran el scroll. Toca cualquiera para copiarlo.</p>
+  <p class="gen-intro">Escribe el tema de tu reel en pocas palabras y te genero 5 ganchos que paran el scroll.</p>
 
   <div class="field">
-    <label>Tu nicho y tema del video</label>
-    <textarea id="tema" placeholder="Ej: soy coach de nutrición y quiero hablar de por qué las dietas de moda no funcionan"></textarea>
-    <p class="gen-nota">Cuanto más específico, mejor el resultado.</p>
+    <label>Tema del video (3 a 7 palabras)</label>
+    <textarea id="tema" placeholder="Ej: por qué las dietas no funcionan&#10;Ej: inteligencia artificial para emprendedoras&#10;Ej: cómo ganar seguidores sin publicidad"></textarea>
+    <p class="gen-nota">Tema corto y concreto = ganchos más potentes.</p>
   </div>
 
   <button class="btn" onclick="generar()">Generar mis 5 ganchos →</button>
@@ -445,21 +445,43 @@ function generar() {
   lista.classList.remove('visible');
   lista.innerHTML = '<p class="ganchos-hint">↓ Toca un gancho para copiarlo</p>';
 
-  // Extraer el núcleo del tema eliminando intro personal y verbos de presentación
-  let asunto = tema
-    .replace(/^(?:soy|tengo|trabajo como|me dedico a)\s+[^,.\n]+[,.\n]?\s*/i, '')
-    .replace(/^(?:quiero|voy a)\s+(?:hablar|tratar|explicar|enseñar|contar)\s+/i, '')
-    .replace(/^(?:sobre|de|acerca de)\s+/i, '')
-    .trim();
-  if (!asunto) asunto = tema;
+  // Extracción robusta del tema real
+  let asunto = tema;
 
-  // Detectar si el asunto es una cláusula (empieza con "cómo", "por qué", etc.)
-  const esClausula = /^(c[oó]mo|por qu[eé]|cu[aá]ndo|si\s)/i.test(asunto);
+  // Intentar extraer lo que viene después de "hablar de/sobre", "explicar", etc.
+  const m1 = tema.match(/(?:hablar|explicar|enseñar|contar|tratar)\s+(?:sobre|de|acerca de)?\s*(.+)/i);
+  if (m1) asunto = m1[1];
+  else {
+    // Intentar quitar intro personal "Soy X, quiero..."
+    const m2 = tema.match(/^[^,]+,\s*(.+)/i);
+    if (m2) asunto = m2[1].replace(/^(?:quiero|voy a)\s+/i, '').replace(/^(?:sobre|de)\s+/i, '');
+  }
+
+  // Limpiar: quitar "y también...", "y además...", "y me ha..." secundarios
+  asunto = asunto
+    .replace(/\s*[,;]\s*y\s+.+$/i, '')
+    .replace(/\s+y\s+también\s+.+$/i, '')
+    .replace(/\s+y\s+adem[aá]s\s+.+$/i, '')
+    .replace(/\s+y\s+tambi[eé]n\s+.+$/i, '')
+    .trim();
+
+  // Convertir primera persona → segunda persona
+  asunto = asunto
+    .replace(/\bme ha\b/gi, 'te puede')
+    .replace(/\bme han\b/gi, 'te pueden')
+    .replace(/\bmi\b/gi, 'tu')
+    .replace(/\byo\b/gi, 'tú')
+    .trim();
+
+  if (!asunto || asunto.length < 4) asunto = tema.split(' ').slice(0, 6).join(' ');
+
   const asuntoMin = asunto.charAt(0).toLowerCase() + asunto.slice(1);
 
-  // Extraer sustantivo principal para ganchos cortos (busca el primer grupo nominal)
-  const sustantivos = asunto.match(/(?:la|el|los|las|un|una|el uso de|la forma de)?\s*([A-Za-záéíóúÁÉÍÓÚüÜñÑ]+(?:\s+(?!de\b|en\b|con\b|para\b|que\b)[A-Za-záéíóúÁÉÍÓÚüÜñÑ]+){0,3})/);
-  const nucleo = sustantivos ? sustantivos[0].trim() : asunto.split(' ').slice(0, 3).join(' ');
+  // Detectar si es cláusula (empieza con cómo, por qué, cuándo, si...)
+  const esClausula = /^(c[oó]mo|por qu[eé]|cu[aá]ndo|si\s|qu[eé]\s)/i.test(asuntoMin);
+
+  // Núcleo: si es cláusula, usarla entera; si es sustantivo, usar tal cual
+  const nucleo = asuntoMin;
 
   const ganchos = esClausula ? [
     // Para cláusulas: templates que la integran como objeto
