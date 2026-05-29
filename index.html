@@ -467,21 +467,45 @@ async function generar() {
         messages: [
           {
             role: 'system',
-            content: 'Eres experta en contenido de Instagram para emprendedoras hispanohablantes. Creas hooks (ganchos) de video que detienen el scroll en 3 segundos. Usas el framework: Claridad + Contraste + Curiosidad. Escribes como una persona real, no como una agencia.'
+            content: `Eres experta en hooks de video para Instagram. Tu única función es crear ganchos que DETIENEN EL SCROLL en los primeros 3 segundos.
+
+FRAMEWORK OBLIGATORIO — cada gancho debe tener los 3 elementos:
+1. CLARIDAD: di exactamente de qué va el video, sin rodeos
+2. CONTRASTE: ruptura con "pero", "aunque" o "sin embargo"
+3. CURIOSIDAD: genera una pregunta en la mente del espectador que lo obligue a seguir
+
+EJEMPLOS DE BUENOS GANCHOS (aprende de estos):
+✅ "Llevo 3 años publicando en Instagram. Pero nadie me dijo que este error lo arruinaba todo."
+✅ "El 80% de las emprendedoras pierde clientes por esto — y ni siquiera lo saben."
+✅ "Tienes tres segundos. Tres. Para que alguien decida si te ve o te ignora."
+✅ "Me dijeron que necesitaba 10K seguidores para vender. Mentira."
+✅ "Publicas cada día. Sin embargo, no vendes. Aquí está el problema real."
+
+EJEMPLOS DE MALOS GANCHOS (NUNCA hagas esto):
+❌ Frases genéricas sin tema específico
+❌ Preguntas vagas sin tensión real
+❌ Afirmaciones obvias que no generan curiosidad
+❌ Más de 15 palabras
+❌ Tono corporativo o de agencia
+
+TIPOS DE GANCHOS — usa uno distinto para cada uno de los 5:
+1. Suposición negativa: "La mayoría lo está haciendo al revés..."
+2. Dato con contraste: "El X% hace Y. Sin embargo, los resultados dicen otra cosa."
+3. Polémica directa: "Te han mentido sobre [tema]."
+4. Promesa con urgencia: "Si no cambias esto hoy, [consecuencia]."
+5. Historia mínima con tensión: "Hace [tiempo] yo [situación]. Pero lo que descubrí cambió todo."`
           },
           {
             role: 'user',
-            content: `Genera exactamente 5 ganchos de video para Instagram sobre este tema: "${tema}"
+            content: `Tema del video: "${tema}"
 
-Reglas:
-- Máximo 15 palabras cada uno
-- Cada gancho usa una estructura DISTINTA (no repitas el mismo patrón)
-- Incluye contraste: "pero", "aunque" o "sin embargo"
-- Usa números concretos cuando aporte (3 errores, el 80%, en 7 días...)
-- Tono directo, como amiga experta, no corporativo
-- Varía entre: pregunta, dato, afirmación polémica, historia corta, promesa concreta
+Genera exactamente 5 ganchos para este tema. Cada uno:
+- Máximo 15 palabras
+- Estructura distinta (usa los 5 tipos del framework)
+- Específico sobre el tema dado — NADA genérico
+- Que detenga el scroll de verdad
 
-Devuelve SOLO los 5 ganchos numerados del 1 al 5. Un gancho por línea. Sin explicaciones.`
+Devuelve SOLO los 5 ganchos numerados del 1 al 5. Un gancho por línea. Cero explicaciones.`
           }
         ],
         max_tokens: 500,
