@@ -370,6 +370,11 @@ footer strong { color: var(--petrol); }
 
   <button class="btn" onclick="generar()">Generar mis 5 ganchos →</button>
 
+  <div class="loading" id="loading">
+    <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    <p>La IA está generando tus ganchos...</p>
+  </div>
+
   <div class="ganchos-lista" id="glista">
     <p class="ganchos-hint">↓ Toca un gancho para copiarlo</p>
   </div>
@@ -437,69 +442,68 @@ function calcular() {
   document.getElementById('res').scrollIntoView({behavior:'smooth', block:'nearest'});
 }
 
-function generar() {
+async function generar() {
   const tema = document.getElementById('tema').value.trim();
-  if(!tema) { alert('Cuéntame primero de qué va tu video 😊'); return; }
+  if(!tema) { alert('Escribe el tema de tu video 😊'); return; }
+
+  const btn = document.querySelector('#gen .btn');
+  btn.disabled = true;
+  btn.textContent = 'Generando...';
 
   const lista = document.getElementById('glista');
   lista.classList.remove('visible');
   lista.innerHTML = '<p class="ganchos-hint">↓ Toca un gancho para copiarlo</p>';
+  document.getElementById('loading').classList.add('visible');
 
-  // Extracción robusta del tema real
-  let asunto = tema;
+  try {
+    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer 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'
+      },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        messages: [
+          {
+            role: 'system',
+            content: 'Eres experta en contenido de Instagram para emprendedoras hispanohablantes. Creas hooks (ganchos) de video que detienen el scroll en 3 segundos. Usas el framework: Claridad + Contraste + Curiosidad. Escribes como una persona real, no como una agencia.'
+          },
+          {
+            role: 'user',
+            content: `Genera exactamente 5 ganchos de video para Instagram sobre este tema: "${tema}"
 
-  // Intentar extraer lo que viene después de "hablar de/sobre", "explicar", etc.
-  const m1 = tema.match(/(?:hablar|explicar|enseñar|contar|tratar)\s+(?:sobre|de|acerca de)?\s*(.+)/i);
-  if (m1) asunto = m1[1];
-  else {
-    // Intentar quitar intro personal "Soy X, quiero..."
-    const m2 = tema.match(/^[^,]+,\s*(.+)/i);
-    if (m2) asunto = m2[1].replace(/^(?:quiero|voy a)\s+/i, '').replace(/^(?:sobre|de)\s+/i, '');
-  }
+Reglas:
+- Máximo 15 palabras cada uno
+- Cada gancho usa una estructura DISTINTA (no repitas el mismo patrón)
+- Incluye contraste: "pero", "aunque" o "sin embargo"
+- Usa números concretos cuando aporte (3 errores, el 80%, en 7 días...)
+- Tono directo, como amiga experta, no corporativo
+- Varía entre: pregunta, dato, afirmación polémica, historia corta, promesa concreta
 
-  // Limpiar: quitar "y también...", "y además...", "y me ha..." secundarios
-  asunto = asunto
-    .replace(/\s*[,;]\s*y\s+.+$/i, '')
-    .replace(/\s+y\s+también\s+.+$/i, '')
-    .replace(/\s+y\s+adem[aá]s\s+.+$/i, '')
-    .replace(/\s+y\s+tambi[eé]n\s+.+$/i, '')
-    .trim();
+Devuelve SOLO los 5 ganchos numerados del 1 al 5. Un gancho por línea. Sin explicaciones.`
+          }
+        ],
+        max_tokens: 500,
+        temperature: 0.85
+      })
+    });
 
-  // Convertir primera persona → segunda persona
-  asunto = asunto
-    .replace(/\bme ha\b/gi, 'te puede')
-    .replace(/\bme han\b/gi, 'te pueden')
-    .replace(/\bmi\b/gi, 'tu')
-    .replace(/\byo\b/gi, 'tú')
-    .trim();
+    if (!resp.ok) throw new Error('Error API: ' + resp.status);
 
-  if (!asunto || asunto.length < 4) asunto = tema.split(' ').slice(0, 6).join(' ');
+    const data = await resp.json();
+    const texto = data.choices?.[0]?.message?.content || '';
 
-  const asuntoMin = asunto.charAt(0).toLowerCase() + asunto.slice(1);
+    const lineas = texto.split('\n')
+      .map(l => l.trim())
+      .filter(l => l.length > 8)
+      .map(l => l.replace(/^\d+[\.\)\-]\s*/, '').trim())
+      .filter(l => l.length > 8)
+      .slice(0, 5);
 
-  // Detectar si es cláusula (empieza con cómo, por qué, cuándo, si...)
-  const esClausula = /^(c[oó]mo|por qu[eé]|cu[aá]ndo|si\s|qu[eé]\s)/i.test(asuntoMin);
+    if (!lineas.length) throw new Error('Respuesta vacía');
 
-  // Núcleo: si es cláusula, usarla entera; si es sustantivo, usar tal cual
-  const nucleo = asuntoMin;
-
-  const ganchos = esClausula ? [
-    // Para cláusulas: templates que la integran como objeto
-    `Nadie te había explicado ${asuntoMin} de esta manera. Y por eso no te funciona.`,
-    `Llevas tiempo intentando entender ${asuntoMin}... pero hay una pieza que falta.`,
-    `Descubrí ${asuntoMin} y en 30 días cambió todo en mi negocio. Pero hay un orden.`,
-    `3 errores que cometes cuando intentas aprender ${asuntoMin}. El tercero es el más común.`,
-    `¿Sabes realmente ${asuntoMin}? El 80% lo está haciendo mal sin saberlo.`
-  ] : [
-    // Para sustantivos: templates que lo integran como sujeto/complemento
-    `Lo que nadie te cuenta sobre ${nucleo} pero que cambia todo cuando lo entiendes.`,
-    `La mayoría lleva meses con ${nucleo} y lo está haciendo al revés.`,
-    `Puedes dominar ${nucleo} aunque empieces desde cero — pero hay un orden.`,
-    `3 errores con ${nucleo} que te están costando tiempo y dinero sin que lo sepas.`,
-    `¿Por qué tu ${nucleo} no funciona aunque hagas todo "bien"? Esto es lo que falta.`
-  ];
-
-  ganchos.forEach((txt, i) => {
+    lineas.forEach((txt, i) => {
       const div = document.createElement('div');
       div.className = 'gancho';
       div.innerHTML = `<div class="gancho-num">Gancho ${i+1}</div><div class="gancho-texto">${txt}</div><div class="gancho-copy">Toca para copiar</div>`;
@@ -507,8 +511,19 @@ function generar() {
       lista.appendChild(div);
     });
 
-  lista.classList.add('visible');
-  lista.scrollIntoView({behavior:'smooth', block:'nearest'});
+    lista.classList.add('visible');
+    lista.scrollIntoView({behavior:'smooth', block:'nearest'});
+
+  } catch(e) {
+    lista.innerHTML = `<div style="background:#fff8e1;border-left:4px solid #ebd93d;border-radius:8px;padding:14px;font-size:13px;color:#555;line-height:1.6">
+      <strong>No se pudo conectar con la IA.</strong><br>Espera unos segundos e intenta de nuevo.
+    </div>`;
+    lista.classList.add('visible');
+  }
+
+  document.getElementById('loading').classList.remove('visible');
+  btn.disabled = false;
+  btn.textContent = 'Generar mis 5 ganchos →';
 }
 
 function copiar(txt) {
