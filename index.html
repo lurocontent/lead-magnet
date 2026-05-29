@@ -445,28 +445,36 @@ function generar() {
   lista.classList.remove('visible');
   lista.innerHTML = '<p class="ganchos-hint">↓ Toca un gancho para copiarlo</p>';
 
-  // Limpiamos el tema para usar en los ganchos tal cual lo escribió
-  // Extraemos la parte descriptiva (después de "quiero hablar de", "sobre", etc.)
-  let asunto = tema;
-  const matches = tema.match(/(?:hablar de|sobre|acerca de|tratar(?:\.| )|explicar|enseñar)\s+(.+)/i);
-  if (matches) asunto = matches[1];
-  // Primera letra minúscula para encajar en mitad de frase
-  const asuntoMin = asunto.charAt(0).toLowerCase() + asunto.slice(1);
-  // Versión corta (primeras 6 palabras) para ganchos más cortos
-  const palabras = asuntoMin.split(' ');
-  const asuntoCorto = palabras.slice(0, 6).join(' ') + (palabras.length > 6 ? '...' : '');
+  // Extraer el núcleo del tema eliminando intro personal y verbos de presentación
+  let asunto = tema
+    .replace(/^(?:soy|tengo|trabajo como|me dedico a)\s+[^,.\n]+[,.\n]?\s*/i, '')
+    .replace(/^(?:quiero|voy a)\s+(?:hablar|tratar|explicar|enseñar|contar)\s+/i, '')
+    .replace(/^(?:sobre|de|acerca de)\s+/i, '')
+    .trim();
+  if (!asunto) asunto = tema;
 
-  const ganchos = [
-    // 1. Contraste con "pero" + número
-    `Lo que te dijeron sobre ${asuntoCorto} funciona... pero solo si evitas este error primero.`,
-    // 2. Suposición negativa
-    `La mayoría lleva meses intentando mejorar ${asuntoCorto} y lo está haciendo al revés.`,
-    // 3. Contraste con "aunque"
-    `Puedes conseguir resultados con ${asuntoCorto} aunque empieces desde cero hoy mismo.`,
-    // 4. Con número + tensión
-    `3 cosas que nadie te cuenta sobre ${asuntoCorto} y que cambian todo.`,
-    // 5. Pregunta + contraste
-    `¿Por qué ${asuntoCorto} no te funciona aunque hagas todo "bien"?`
+  // Detectar si el asunto es una cláusula (empieza con "cómo", "por qué", etc.)
+  const esClausula = /^(c[oó]mo|por qu[eé]|cu[aá]ndo|si\s)/i.test(asunto);
+  const asuntoMin = asunto.charAt(0).toLowerCase() + asunto.slice(1);
+
+  // Extraer sustantivo principal para ganchos cortos (busca el primer grupo nominal)
+  const sustantivos = asunto.match(/(?:la|el|los|las|un|una|el uso de|la forma de)?\s*([A-Za-záéíóúÁÉÍÓÚüÜñÑ]+(?:\s+(?!de\b|en\b|con\b|para\b|que\b)[A-Za-záéíóúÁÉÍÓÚüÜñÑ]+){0,3})/);
+  const nucleo = sustantivos ? sustantivos[0].trim() : asunto.split(' ').slice(0, 3).join(' ');
+
+  const ganchos = esClausula ? [
+    // Para cláusulas: templates que la integran como objeto
+    `Nadie te había explicado ${asuntoMin} de esta manera. Y por eso no te funciona.`,
+    `Llevas tiempo intentando entender ${asuntoMin}... pero hay una pieza que falta.`,
+    `Descubrí ${asuntoMin} y en 30 días cambió todo en mi negocio. Pero hay un orden.`,
+    `3 errores que cometes cuando intentas aprender ${asuntoMin}. El tercero es el más común.`,
+    `¿Sabes realmente ${asuntoMin}? El 80% lo está haciendo mal sin saberlo.`
+  ] : [
+    // Para sustantivos: templates que lo integran como sujeto/complemento
+    `Lo que nadie te cuenta sobre ${nucleo} pero que cambia todo cuando lo entiendes.`,
+    `La mayoría lleva meses con ${nucleo} y lo está haciendo al revés.`,
+    `Puedes dominar ${nucleo} aunque empieces desde cero — pero hay un orden.`,
+    `3 errores con ${nucleo} que te están costando tiempo y dinero sin que lo sepas.`,
+    `¿Por qué tu ${nucleo} no funciona aunque hagas todo "bien"? Esto es lo que falta.`
   ];
 
   ganchos.forEach((txt, i) => {
