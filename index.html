@@ -370,13 +370,6 @@ footer strong { color: var(--petrol); }
 
   <button class="btn" onclick="generar()">Generar mis 5 ganchos →</button>
 
-  <div class="loading" id="loading">
-    <div class="dots">
-      <div class="dot"></div><div class="dot"></div><div class="dot"></div>
-    </div>
-    <p>La IA está generando tus ganchos...</p>
-  </div>
-
   <div class="ganchos-lista" id="glista">
     <p class="ganchos-hint">↓ Toca un gancho para copiarlo</p>
   </div>
@@ -444,54 +437,39 @@ function calcular() {
   document.getElementById('res').scrollIntoView({behavior:'smooth', block:'nearest'});
 }
 
-async function generar() {
+function generar() {
   const tema = document.getElementById('tema').value.trim();
   if(!tema) { alert('Cuéntame primero de qué va tu video 😊'); return; }
-
-  const btn = document.querySelector('#gen .btn');
-  btn.disabled = true;
-  btn.textContent = 'Generando...';
 
   const lista = document.getElementById('glista');
   lista.classList.remove('visible');
   lista.innerHTML = '<p class="ganchos-hint">↓ Toca un gancho para copiarlo</p>';
 
-  document.getElementById('loading').classList.add('visible');
+  // Limpiamos el tema para usar en los ganchos tal cual lo escribió
+  // Extraemos la parte descriptiva (después de "quiero hablar de", "sobre", etc.)
+  let asunto = tema;
+  const matches = tema.match(/(?:hablar de|sobre|acerca de|tratar(?:\.| )|explicar|enseñar)\s+(.+)/i);
+  if (matches) asunto = matches[1];
+  // Primera letra minúscula para encajar en mitad de frase
+  const asuntoMin = asunto.charAt(0).toLowerCase() + asunto.slice(1);
+  // Versión corta (primeras 6 palabras) para ganchos más cortos
+  const palabras = asuntoMin.split(' ');
+  const asuntoCorto = palabras.slice(0, 6).join(' ') + (palabras.length > 6 ? '...' : '');
 
-  const instruccion = `Eres experta en contenido de Instagram. Genera exactamente 5 ganchos para video (hooks de 3 segundos) basados en el tema que te doy.
+  const ganchos = [
+    // 1. Contraste con "pero" + número
+    `Lo que te dijeron sobre ${asuntoCorto} funciona... pero solo si evitas este error primero.`,
+    // 2. Suposición negativa
+    `La mayoría lleva meses intentando mejorar ${asuntoCorto} y lo está haciendo al revés.`,
+    // 3. Contraste con "aunque"
+    `Puedes conseguir resultados con ${asuntoCorto} aunque empieces desde cero hoy mismo.`,
+    // 4. Con número + tensión
+    `3 cosas que nadie te cuenta sobre ${asuntoCorto} y que cambian todo.`,
+    // 5. Pregunta + contraste
+    `¿Por qué ${asuntoCorto} no te funciona aunque hagas todo "bien"?`
+  ];
 
-Reglas de cada gancho:
-- Máximo 15 palabras
-- Debe incluir contraste: "pero", "aunque" o "sin embargo"
-- Debe generar curiosidad inmediata
-- Concreto: usa números o situaciones reales cuando aplique
-- Tono de persona real, no de agencia
-
-Devuelve SOLO los 5 ganchos, numerados del 1 al 5, un gancho por línea. Sin títulos, sin explicaciones.`;
-
-  try {
-    const raw = await window.cowork.askClaude(instruccion, [tema]);
-
-    // askClaude puede devolver string, objeto {text}, array, etc.
-    let texto = '';
-    if (typeof raw === 'string') {
-      texto = raw;
-    } else if (Array.isArray(raw)) {
-      texto = raw.map(r => (typeof r === 'string' ? r : r?.text || r?.content || JSON.stringify(r))).join('\n');
-    } else if (raw && typeof raw === 'object') {
-      texto = raw.text || raw.content || raw.result || raw.output || JSON.stringify(raw);
-    }
-
-    const lineas = texto.split('\n')
-      .map(l => l.trim())
-      .filter(l => l.length > 8)
-      .map(l => l.replace(/^\d+[\.\)\-]\s*/, '').trim())
-      .filter(l => l.length > 8)
-      .slice(0, 5);
-
-    if (lineas.length === 0) throw new Error('respuesta vacía — raw: ' + JSON.stringify(raw).slice(0, 200));
-
-    lineas.forEach((txt, i) => {
+  ganchos.forEach((txt, i) => {
       const div = document.createElement('div');
       div.className = 'gancho';
       div.innerHTML = `<div class="gancho-num">Gancho ${i+1}</div><div class="gancho-texto">${txt}</div><div class="gancho-copy">Toca para copiar</div>`;
@@ -499,21 +477,8 @@ Devuelve SOLO los 5 ganchos, numerados del 1 al 5, un gancho por línea. Sin tí
       lista.appendChild(div);
     });
 
-    lista.classList.add('visible');
-    lista.scrollIntoView({behavior:'smooth', block:'nearest'});
-
-  } catch(e) {
-    lista.innerHTML = `<div style="background:#fff8e1;border-left:4px solid #ebd93d;border-radius:8px;padding:14px 16px;font-size:13px;color:#555;line-height:1.6;">
-      <strong style="color:#000">La IA tardó demasiado o no respondió.</strong><br>
-      Espera unos segundos y pulsa el botón de nuevo.<br>
-      <span style="font-size:11px;color:#aaa;margin-top:4px;display:block;">Error: ${e.message}</span>
-    </div>`;
-    lista.classList.add('visible');
-  }
-
-  document.getElementById('loading').classList.remove('visible');
-  btn.disabled = false;
-  btn.textContent = 'Generar mis 5 ganchos →';
+  lista.classList.add('visible');
+  lista.scrollIntoView({behavior:'smooth', block:'nearest'});
 }
 
 function copiar(txt) {
